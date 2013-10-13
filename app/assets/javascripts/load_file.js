@@ -4,7 +4,7 @@
 //= require k4-spin
 //= require k5-lightbox
 //= require k6-main
-
+//= require k7-jquery.history
 //= require k8-hashchange
 //= require k9-html5shiv
 
