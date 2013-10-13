@@ -8,9 +8,7 @@ Bundler.require(:default, Rails.env)
 
 module OlgasHelpers
   class Application < Rails::Application
-    config.assets.precompile += ['application.css']
-    config.assets.precompile += ['application.js']
-    config.assets.precompile += ['load_file.js']
+
 
 
     # don't generate RSpec tests for views and helpers
