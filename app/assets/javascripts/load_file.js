@@ -1,6 +1,6 @@
 
 //= require k2-lazyload
-//= require k3-jquery.mobile
+
 //= require k4-spin
 //= require k5-lightbox
 //= require k6-main
