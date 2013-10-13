@@ -16,6 +16,7 @@ gem 'rolify'
 gem 'simple_form', '>= 3.0.0.rc'
 gem 'unicorn'
 gem 'font-awesome-rails'
+gem 'rails_12factor'
 
 group :development do
   gem 'better_errors'
