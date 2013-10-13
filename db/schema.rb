@@ -16,6 +16,43 @@ ActiveRecord::Schema.define(version: 20131013191726) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
+  create_table "caretakers", force: true do |t|
+    t.string   "first_name"
+    t.string   "last_name"
+    t.string   "email"
+    t.float    "age"
+    t.string   "nationality"
+    t.text     "comment"
+    t.boolean  "citizen"
+    t.boolean  "car"
+    t.boolean  "driver_license"
+    t.float    "english"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "clients", force: true do |t|
+    t.string   "first_name"
+    t.string   "last_name"
+    t.string   "email"
+    t.string   "home_number"
+    t.string   "mobile_phone"
+    t.string   "fax_number"
+    t.string   "street"
+    t.string   "state"
+    t.string   "zip"
+    t.string   "nationality"
+    t.string   "languages"
+    t.float    "english"
+    t.float    "years"
+    t.string   "hha"
+    t.boolean  "driver_license"
+    t.boolean  "car"
+    t.string   "notes"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "roles", force: true do |t|
     t.string   "name"
     t.integer  "resource_id"
