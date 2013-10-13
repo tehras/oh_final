@@ -11,7 +11,8 @@
 // about supported directives.
 //
 
-//= require jquery-1.9.1.min
+//= require jquery-1.9.1.min.js
+//= require jquery-migrate-1.2.1
 //= require jquery.turbolinks
 
 //= require bootstrap
