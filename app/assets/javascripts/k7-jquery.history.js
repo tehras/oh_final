@@ -1,194 +1,411 @@
-/*
- * jQuery history plugin
- * 
- * The MIT License
- * 
- * Copyright (c) 2006-2009 Taku Sano (Mikage Sawatari)
- * Copyright (c) 2010 Takayuki Miwa
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+/*!
+ * @namejQuery.history v1.0.1
+ * @author yeikos
+ * @repository https://github.com/yeikos/jquery.history
+ * @dependencies jQuery 1.7.0+
+
+ * Copyright 2013 yeikos - MIT license
+ * https://raw.github.com/yeikos/js.merge/master/LICENSE
  */
 
-(function($) {
-    var locationWrapper = {
-        put: function(hash, win) {
-            (win || window).location.hash = this.encoder(hash);
-        },
-        get: function(win) {
-            var hash = ((win || window).location.hash).replace(/^#/, '');
-            try {
-                return $.browser.mozilla ? hash : decodeURIComponent(hash);
-            }
-            catch (error) {
-                return hash;
-            }
-        },
-        encoder: encodeURIComponent
-    };
+;
+(function ($, undefined) {
 
-    var iframeWrapper = {
-        id: "__jQuery_history",
-        init: function() {
-            var html = '<iframe id="'+ this.id +'" style="display:none" src="javascript:false;" />';
-            $("body").prepend(html);
-            return this;
-        },
-        _document: function() {
-            return $("#"+ this.id)[0].contentWindow.document;
-        },
-        put: function(hash) {
-            var doc = this._document();
-            doc.open();
-            doc.close();
-            locationWrapper.put(hash, doc);
-        },
-        get: function() {
-            return locationWrapper.get(this._document());
-        }
-    };
+    var Public = function (url) {
 
-    function initObjects(options) {
-        options = $.extend({
-            unescape: false
-        }, options || {});
+        // Establecemos la nueva dirección siempre y cuando ésta haya cambiado
 
-        locationWrapper.encoder = encoder(options.unescape);
+        if (_type === 'pathname') {
 
-        function encoder(unescape_) {
-            if(unescape_ === true) {
-                return function(hash){ return hash; };
-            }
-            if(typeof unescape_ == "string" &&
-                (unescape_ = partialDecoder(unescape_.split("")))
-                || typeof unescape_ == "function") {
-                return function(hash) { return unescape_(encodeURIComponent(hash)); };
-            }
-            return encodeURIComponent;
-        }
+            if (_last !== url)
 
-        function partialDecoder(chars) {
-            var re = new RegExp($.map(chars, encodeURIComponent).join("|"), "ig");
-            return function(enc) { return enc.replace(re, decodeURIComponent); };
-        }
-    }
+                window.history.pushState({}, null, _last = url);
 
-    var implementations = {};
+        } else if (_type === 'hash') {
 
-    implementations.base = {
-        callback: undefined,
-        type: undefined,
+            if (_last !== url) {
 
-        check: function() {},
-        load:  function(hash) {},
-        init:  function(callback, options) {
-            initObjects(options);
-            self.callback = callback;
-            self._options = options;
-            self._init();
-        },
+                _last = location.hash = url;
 
-        _init: function() {},
-        _options: {}
-    };
+                // Si se trata de IE6/IE7
 
-    implementations.timer = {
-        _appState: undefined,
-        _init: function() {
-            var current_hash = locationWrapper.get();
-            self._appState = current_hash;
-            self.callback(current_hash);
-            setInterval(self.check, 100);
-        },
-        check: function() {
-            var current_hash = locationWrapper.get();
-            if(current_hash != self._appState) {
-                self._appState = current_hash;
-                self.callback(current_hash);
-            }
-        },
-        load: function(hash) {
-            if(hash != self._appState) {
-                locationWrapper.put(hash);
-                self._appState = hash;
-                self.callback(hash);
-            }
-        }
-    };
+                if (_ie67) {
 
-    implementations.iframeTimer = {
-        _appState: undefined,
-        _init: function() {
-            var current_hash = locationWrapper.get();
-            self._appState = current_hash;
-            iframeWrapper.init().put(current_hash);
-            self.callback(current_hash);
-            setInterval(self.check, 100);
-        },
-        check: function() {
-            var iframe_hash = iframeWrapper.get(),
-                location_hash = locationWrapper.get();
+                    // El `iframe` ha de encontrarse en el documento
 
-            if (location_hash != iframe_hash) {
-                if (location_hash == self._appState) {    // user used Back or Forward button
-                    self._appState = iframe_hash;
-                    locationWrapper.put(iframe_hash);
-                    self.callback(iframe_hash);
-                } else {                              // user loaded new bookmark
-                    self._appState = location_hash;
-                    iframeWrapper.put(location_hash);
-                    self.callback(location_hash);
+                    if (!$('#jQueryHistory').length)
+
+                        throw new Error('jQuery.' + publicName + '.push: iframe not found.');
+
+                    // Si es la primera vez
+
+                    if (_firstTime) {
+
+                        _firstTime = 0;
+
+                        // Añadimos primero al historial una entrada vacía para que el usuario
+                        // pueda volver al inicio de página, de lo contrario saldrá fuera de ella
+
+                        _iframe.contentWindow.document.open().close();
+                        _iframe.contentWindow.location.hash = '/';
+
+                    }
+
+                    // Cambiamos la dirección del `iframe` para simular el historial
+
+                    _iframe.contentWindow.document.open().close();
+
+                    _iframe.contentWindow.location.hash = url;
+
                 }
+
             }
-        },
-        load: function(hash) {
-            if(hash != self._appState) {
-                locationWrapper.put(hash);
-                iframeWrapper.put(hash);
-                self._appState = hash;
-                self.callback(hash);
-            }
+
+        } else {
+
+            // Es necesario que se haya iniciado una escucha activa para establecer una dirección
+
+            throw new Error('jQuery.' + publicName + '.push: listener is not active.');
+
         }
+
+        Public.context.trigger('push', [url, _type]);
+
+        return Public;
+
+    }, publicName = 'history';
+
+    // Contexto donde se centralizan los eventos (`load`, `change`, `push`)
+
+    Public.context = $({});
+
+    // Accesos directos a los métodos `on`, `off` y `trigger`
+
+    $.each(['on', 'off', 'trigger'], function (index, method) {
+
+        Public[method] = function () {
+
+            Public.context[method].apply(Public.context, arguments);
+
+            return Public;
+
+        };
+
+    });
+
+    // Acceso directo a la función principal
+
+    Public.push = Public;
+
+    // Obtiene el tipo de escucha actual (`pathname`, `hash`, `null`)
+
+    Public.getListenType = function () {
+
+        return _type;
+
     };
 
-    implementations.hashchangeEvent = {
-        _init: function() {
-            self.callback(locationWrapper.get());
-            $(window).bind('hashchange', self.check);
-        },
-        check: function() {
-            self.callback(locationWrapper.get());
-        },
-        load: function(hash) {
-            locationWrapper.put(hash);
+    // Inicializa una escucha en el documento para intervenir los cambios del historial y poder establecer direcciones
+
+    Public.listen = function (type, interval) {
+
+        // Desactivamos posibles escuchas anteriores
+
+        Public.unlisten();
+
+        var size = arguments.length;
+
+        // Detección automática del modo de escucha
+
+        if (!size || type === 'auto') {
+
+            type = _pushState ? 'pathname' : 'hash';
+
+            size = 1;
+
+        } else if (type !== 'pathname' && type !== 'hash') {
+
+            throw new Error('jQuery.' + publicName + '.listen: type is not valid.');
+
         }
+
+        // Si el modo de escucha es `hash`
+
+        if (type === 'hash') {
+
+            // Si no hay soporte para `onhaschange` y no se especificó un intervalo, o el intervalo es `true`
+
+            if ((!_onhashchange && size === 1) || interval === true) {
+
+                // Establecemos el intervalo de la configuración
+
+                interval = Public.config.interval;
+
+                size = 2;
+
+            }
+
+            // Si el intervalo fue fijado comprobamos si su valor es correcto
+
+            if (size === 2 && (isNaN(interval) || interval < 1))
+
+                throw new Error('jQuery.' + publicName + '.listen: interval delay is not valid.');
+
+        }
+
+        // Si el modo de escucha es `pathname`
+
+        if ((_type = type) === 'pathname') {
+
+            // Ha de haber soporte nativo
+
+            if (!_pushState)
+
+                throw new Error('jQuery.' + publicName + '.listen: this browser has not support to pushState.');
+
+            // Cuando haya un cambio en la dirección URL
+
+            $(window).on('popstate.history', function (event) {
+
+                // Si se trata de un evento real originado internamente por el navegador
+                // y la dirección ha cambiado emitimos el evento `change`
+
+                if (event.originalEvent && event.originalEvent.state && _last !== location.pathname)
+
+                    Public.trigger('change', [_last = location.pathname, 'pathname']);
+
+            });
+
+            if (location.pathname.length > 1)
+
+                Public.trigger('load', [location.pathname + location.search + location.hash, 'pathname']);
+
+        } else {
+
+            // Si hay soporte nativo de `onhashchange` y no se especificó el argumento intervalo
+
+            if (_onhashchange && !interval) {
+
+                // Hacemos uso del evento nativo `hashchange`
+
+                $(window).on('hashchange.history', function (event) {
+
+                    var hash = location.hash.substr(1);
+
+                    if (_last !== hash)
+
+                        Public.trigger('change', [_last = hash, 'hash']);
+
+                });
+
+                // Si no hay soporte o simplemente se especificó el argumento intervalo
+
+            } else {
+
+                // Si no se ha detecto si el navegador es IE6/IE67
+
+                if (_ie67 === undefined)
+
+                // Realizamos la comprobación una sola vez
+
+                    _ie67 = Public.isIE67();
+
+                // Si se trata de IE6/IE7
+
+                if (_ie67) {
+
+                    // Es necesario que se encuentre disponible `body` (dom ready)
+
+                    if (!(size = $('body')).length)
+
+                        throw new Error('jQuery.' + publicName + '.listen: document is not ready.');
+
+                    // Creamos un `iframe` con el que emular el historial
+
+                    _iframe = $('<iframe id="jQueryHistory" style="display:none" src="javascript:void(0);" />').appendTo(size)[0];
+
+                    var win = _iframe.contentWindow;
+
+                    // Si el documento ya contiene una dirección, la establecemos en el `iframe`
+
+                    if (location.hash.length > 1) {
+
+                        win.document.open().close();
+
+                        win.location.hash = location.hash;
+
+                    }
+
+                    // Emulamos el evento `haschange` mediante un intervalo
+
+                    _interval = setInterval(function () {
+
+                        // Si la dirección actual es diferente a la del `iframe`
+
+                        if ((_last = location.hash) !== win.location.hash) {
+
+                            // Actualizamos la dirección del `iframe`
+
+                            win.document.open().close();
+
+                            win.location.hash = _last;
+
+                            Public.trigger('change', [_last.substr(1), 'hash']);
+
+                        }
+
+                    }, interval);
+
+                } else {
+
+                    // Emulamos el evento `haschange` mediante un intervalo
+
+                    _last = location.hash.substr(1);
+
+                    _interval = setInterval(function () {
+
+                        var hash = location.hash.substr(1);
+
+                        if (_last !== hash)
+
+                            Public.trigger('change', [_last = hash, 'hash']);
+
+                    }, interval);
+
+                }
+
+            }
+
+            // Si ya se encuentra un `hash` definido en el documento
+
+            if (location.hash.length > 1)
+
+            // Emitimos el evento `load`
+
+                Public.trigger('load', [location.hash.substr(1), 'hash']);
+
+        }
+
+        return Public;
+
     };
 
-    var self = $.extend({}, implementations.base);
+    // Desactiva cualquier tipo de escucha realizada por `History.listen`
 
-    if($.browser.msie && ($.browser.version < 8 || document.documentMode < 8)) {
-        self.type = 'iframeTimer';
-    } else if("onhashchange" in window) {
-        self.type = 'hashchangeEvent';
-    } else {
-        self.type = 'timer';
-    }
+    Public.unlisten = function () {
 
-    $.extend(self, implementations[self.type]);
-    $.history = self;
+        _type = _last = _iframe = null;
+
+        $(window).off('popstate.history hashchange.history');
+
+        $('#jQueryHistory').remove();
+
+        clearInterval(_interval);
+
+        return Public;
+
+    };
+
+    // Obtiene el soporte de ciertas funcionalidades del navegador
+
+    Public.getSupports = function (type) {
+
+        var result = {},
+
+            size = arguments.length,
+
+            docmode;
+
+        if (!size || type === 'pushState')
+
+            result.pushState = ('pushState' in window.history);
+
+        if (!size || type === 'onhashchange')
+
+            result.onhashchange = ('onhashchange' in window && ((docmode = document.documentMode) === undefined || docmode > 7 ));
+
+        if (size)
+
+            return result[type];
+
+        return result;
+
+    };
+
+    // Comprueba si el navegador es IE6/IE7
+
+    Public.isIE67 = function () {
+
+        var name = '_history_msie',
+
+            $msie, result;
+
+        window[name] = false;
+
+        $msie = $('<span><!--[if lte IE 7]><script type="text/javascript">window.' + name + '=true;</script><![endif]--></span>').appendTo('body');
+
+        result = (window[name] === true);
+
+        try {
+
+            delete window[name];
+
+        } catch (e) {
+
+            window[name] = undefined;
+
+        }
+
+        $msie.remove();
+
+        return result;
+
+    };
+
+    // Soporte de funcionalidades del navegador
+
+    Public.supports = Public.getSupports();
+
+    // Configuración
+
+    Public.config = {
+
+        // Retraso del intervalo en la emulación del evento `haschange`
+
+        interval: 100
+
+    };
+
+    // Accesos directos a los soportes
+
+    var _pushState = Public.supports.pushState,
+
+        _onhashchange = Public.supports.onhashchange,
+
+        _ie67,
+
+    // Tipo actual de escucha
+
+        _type = null,
+
+    // Intervalo utilizado por la emulación del evento `hashchange`
+
+        _interval,
+
+    // Iframe utilizado para generar el historial en IE6/IE7
+
+        _iframe,
+
+    // Marcador utilizado por IE6/IE7
+
+        _firstTime = 1,
+
+    // Última dirección establecida
+
+        _last;
+
+    // Acceso desde al exterior
+
+    $[publicName] = Public;
+
 })(jQuery);

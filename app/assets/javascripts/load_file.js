@@ -1,6 +1,5 @@
 
 //= require k2-lazyload
-
 //= require k4-spin
 //= require k5-lightbox
 //= require k6-main
