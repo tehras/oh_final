@@ -11,7 +11,7 @@
 // about supported directives.
 //
 
-//= require jquery-1.9.1.min.js
+//= require jquery-1.8.2
 //= require jquery.turbolinks
 
 //= require bootstrap
